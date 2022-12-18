@@ -1,2 +1,2 @@
-# cflib
-LIbrary of useful objects and routines
+# libcf
+Library of useful objects and routines
