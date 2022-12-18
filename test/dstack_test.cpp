@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-#include "dstack.h"
+#include "libcf.h"
 
 struct Record {
     char name[128];
@@ -36,8 +36,6 @@ int main()
         r = stack.pop();
         std::cout << r.name << std::endl;
     }
-
-
 
     return 0;
 }

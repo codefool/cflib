@@ -19,8 +19,26 @@ bool QueueFile::open()
 {
     std::filesystem::path path(_fspec);
     bool exists = std::filesystem::exists(path);
-    const char *mode = (exists) ? "r+" : "w+";
-    _fp = std::fopen( _fspec.c_str(), mode );
+    if ( !exists )
+    {
+        _fp.open( _fspec, std::ios::out );
+        if ( !_fp.is_open() )
+        {
+            std::stringstream ss;
+            ss << "Error " << errno << " creating file " << _fspec;
+            throw std::runtime_error(ss.str());
+        }
+        _fp.close();
+    }
+
+    _fp.open( _fspec, std::ios::in|std::ios::out|std::ios::binary );
+    if ( !_fp.is_open() )
+    {
+        std::stringstream ss;
+        ss << "Error " << errno << " opening file " << _fspec;
+        throw std::runtime_error(ss.str());
+    }
+
     return exists;
 }
 
@@ -30,16 +48,25 @@ bool QueueFile::open(std::string fspec)
     return open();
 }
 
-void QueueFile::close()
+std::istream& QueueFile::seekg( std::streamoff pos, std::ios_base::seekdir dir )
 {
-    if (_fp != nullptr)
-        std::fclose(_fp);
-    _fp = nullptr;
+    return _fp.seekg( pos, dir );
 }
 
-QueueFile::operator FILE*()
+std::istream& QueueFile::read( char *s, std::streamsize n )
 {
-    return _fp;
+    return _fp.read( s, n );
+}
+
+std::ostream& QueueFile::write( const char *s, std::streamsize n)
+{
+    return _fp.write( s, n );
+}
+
+void QueueFile::close()
+{
+    if (_fp.is_open())
+        _fp.close();
 }
 
 std::mutex& QueueFile::mtx()
@@ -101,8 +128,8 @@ void DiskQueue::push(const dq_data_t data)
             _header._push._rec_no   = 0;
             _alloc.push_back(_header._block_cnt);
             _header._block_cnt++;
-            std::fseek(_dat, pos, SEEK_SET);
-            std::fwrite(dq_naught, 1, _header._block_size, _dat);
+            _dat.seekg(pos, std::ios::beg);
+            _dat.write(dq_naught, _header._block_size);
         }
         else
         {
@@ -117,8 +144,8 @@ void DiskQueue::push(const dq_data_t data)
     }
     off_t pos = (_header._push._block_id * _header._block_size) +
                 (_header._push._rec_no   * _header._rec_len);
-    std::fseek(_dat, pos, SEEK_SET);
-    std::fwrite((const void *)data, 1, _header._rec_len, _dat);
+    _dat.seekg( pos, std::ios::beg );
+    _dat.write( reinterpret_cast<const char *>(data), _header._rec_len );
     if ( _header._pop._block_id == BLOCK_NIL )
         _header._pop = _header._push;
     _header._push._rec_no++;
@@ -157,8 +184,8 @@ bool DiskQueue::pop(dq_data_t data)
 
     off_t pos = (_header._pop._block_id * _header._block_size) +
                 (_header._pop._rec_no   * _header._rec_len);
-    std::fseek(_dat, pos, SEEK_SET);
-    std::fread((void *)data, 1, _header._rec_len, _dat);
+    _dat.seekg( pos, std::ios::beg );
+    _dat.read( reinterpret_cast<char *>(data), _header._rec_len );
     _header._pop._rec_no++;
     _header._rec_cnt--;
 
@@ -177,13 +204,13 @@ void DiskQueue::write_index()
         _idx.open();
     _header._alloc_cnt = _alloc.size();
     _header._free_cnt  = _free .size();
-    std::fseek( _idx, 0, SEEK_SET );
-    std::fwrite( &_header, sizeof(QueueHeader), 1, _idx );
+    _idx.seekg( 0, std::ios::beg );
+    _idx.write( reinterpret_cast<const char *>(&_header), sizeof(QueueHeader) );
     // write the alloc chain
     for ( auto id : _alloc )
-        std::fwrite(&id, sizeof(id), 1, _idx);
+        _idx.write( reinterpret_cast<const char *>(&id), sizeof(id) );
     for ( auto id : _free )
-        std::fwrite(&id, sizeof(id), 1, _idx);
+        _idx.write( reinterpret_cast<const char *>(&id), sizeof(id) );
     _idx.close();
 }
 
@@ -192,19 +219,19 @@ void DiskQueue::read_index()
     std::lock_guard<std::mutex> lock(_idx.mtx());
     if ( !_idx.is_open() )
         _idx.open();
-    std::fseek( _idx, 0, SEEK_SET );
-    std::fread( &_header, sizeof(QueueHeader), 1, _idx );
+    _idx.seekg( 0, std::ios::beg );
+    _idx.read( reinterpret_cast<char *>(&_header), sizeof(QueueHeader) );        
     // write the alloc chain
     for ( int idx(0); idx < _header._alloc_cnt; ++idx )
     {
         BlockList::value_type id;
-        std::fread( &id, sizeof(id), 1, _idx );
+        _idx.read( reinterpret_cast<char *>(&id), sizeof(id) );
         _alloc.push_back(id);
     }
     for ( int idx(0); idx < _header._free_cnt; ++idx )
     {
         BlockList::value_type id;
-        std::fread( &id, sizeof(id), 1, _idx );
+        _idx.read( reinterpret_cast<char *>(&id), sizeof(id) );
         _free.push_back( id );
     }
     _idx.close();

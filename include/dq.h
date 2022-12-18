@@ -23,7 +23,9 @@
 
 #pragma once
 
+#include <iostream>
 #include <filesystem>
+#include <fstream>
 #include <list>
 #include <mutex>
 
@@ -73,17 +75,19 @@ struct QueueHeader
 class QueueFile
 {
 protected:
-    std::string _fspec;
-    FILE*       _fp;
-    std::mutex  _mtx;
+    std::string  _fspec;
+    std::fstream _fp;
+    std::mutex   _mtx;
 public:
     QueueFile();
     virtual ~QueueFile();
-    operator FILE*();
     bool open();
     bool open(std::string fspec);
+    std::istream& seekg( std::streamoff pos, std::ios_base::seekdir dir );
+    std::istream& read( char *s, std::streamsize n );
+    std::ostream& write( const char *s, std::streamsize n);
     void close();
-    bool is_open() { return _fp != nullptr; }
+    bool is_open() { return _fp.is_open(); }
     std::mutex& mtx();
 };
 
