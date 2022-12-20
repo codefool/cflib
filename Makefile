@@ -21,14 +21,18 @@ $(LIB_NAME) : $(OBJ)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(INC_DIR)/%.h
 	$(CC) $(CFLAGS) -c $< -o $@
+	$(ARC) $(AFLAGS) $(LIB_NAME) $@
 
 clean:
 	rm $(OBJ_DIR)/*.o $(LIB_NAME)
 
-.PHONY : test dq_util
+.PHONY : test dq_util dht_util
 
 test:
 	$(CC) $(CFLAGS) ./test/dstack_test.cpp -I. -L/usr/lib/x86_64-linux-gnu libcf -o dstack_test
 
 dq_util:
 	$(CC) $(CFLAGS) ./test/dq_util.cpp -I. -L/usr/lib/x86_64-linux-gnu libcf -o dq_util
+
+dht_util:
+	$(CC) $(CFLAGS) ./test/dht_util.cpp -I. -L/usr/lib/x86_64-linux-gnu libcf  -lpthread -o dht_util
