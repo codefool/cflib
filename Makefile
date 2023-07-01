@@ -21,12 +21,17 @@ CFLAGS := -g -std=c++2a -I$(INC_DIR)
 ARC := ar
 AFLAGS := rvs
 
+all: build-ver $(LIB_NAME)
+
 $(LIB_NAME) : $(OBJ)
 	$(ARC) $(AFLAGS) $@ $(OBJ)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(INC_DIR)/%.h
 	$(CC) $(CFLAGS) -c $< -o $@
 	$(ARC) $(AFLAGS) $(LIB_NAME) $@
+
+build-ver:
+	sed -ri 's/(.*)(ver_build = )([0-9]*);/echo "\1\2$$((\3+1));"/ge' $(INC_DIR)/buildinfo.h
 
 clean:
 	rm $(OBJ_DIR)/*.o $(LIB_NAME)
