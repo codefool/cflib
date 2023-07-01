@@ -66,12 +66,9 @@ struct PositionPacked
     uint64_t       hi;    // hi 64-bits population info
     bool operator<(const PositionPacked& o) const
     {
-        if ( pop == o.pop )
-        {
-            if ( gi.i == o.gi.i )
-            {
-                if ( hi == o.hi )
-                {
+        if ( pop == o.pop ) {
+            if ( gi.i == o.gi.i ) {
+                if ( hi == o.hi ) {
                     return lo < o.lo;
                 }
                 return hi < o.hi;
@@ -198,21 +195,39 @@ void command_test(int argc, char **argv)
     // close and delete the dht
     PositionPacked i_pp, o_pp;
     PosInfo i_pi, o_pi;
-    libcf::DiskHashTable dht;
-    std::memset(&i_pp, 0x00, sizeof(PositionPacked));
-    std::memset(&i_pi, 0x00, sizeof(PosInfo));
-    dht.open("/tmp/", "temp", 888, sizeof(PositionPacked), sizeof(PosInfo));
+    // libcf::DiskHashTable dht;
+    // std::memset(&i_pp, 0x00, sizeof(PositionPacked));
+    // std::memset(&i_pi, 0x00, sizeof(PosInfo));
+    // dht.open("/tmp/", "temp", 888, sizeof(PositionPacked), sizeof(PosInfo));
+    // for (int i = 1; i < 100000; ++i)
+    // {
+    //     i_pp.lo = i_pi.id = i;
+    //     dht.append((libcf::ucharptr_c)&i_pp, (libcf::ucharptr_c)&i_pi);
+    //     bool found = dht.search((libcf::ucharptr_c)&i_pp, (libcf::ucharptr)&o_pi);
+    //     assert(found == true);
+    //     assert(o_pi == i_pi);
+    //     // update
+    //     i_pi.distance = 2 * i;
+    //     dht.update((libcf::ucharptr_c)&i_pp, (libcf::ucharptr_c)&i_pi);
+    //     found = dht.search((libcf::ucharptr_c)&i_pp, (libcf::ucharptr)&o_pi);
+    //     assert(found == true);
+    //     assert(o_pi == i_pi);
+    //     std::cout << i << std::endl;
+    // }
+    // repeat the test using the template
+    libcf::dht<PositionPacked,PosInfo> tdht;
+    tdht.open("/tmp/", "ttemp", 888);
     for (int i = 1; i < 100000; ++i)
     {
         i_pp.lo = i_pi.id = i;
-        dht.append((libcf::ucharptr_c)&i_pp, (libcf::ucharptr_c)&i_pi);
-        bool found = dht.search((libcf::ucharptr_c)&i_pp, (libcf::ucharptr)&o_pi);
+        tdht.append(i_pp, i_pi);
+        bool found = tdht.search(i_pp, o_pi);
         assert(found == true);
         assert(o_pi == i_pi);
         // update
         i_pi.distance = 2 * i;
-        dht.update((libcf::ucharptr_c)&i_pp, (libcf::ucharptr_c)&i_pi);
-        found = dht.search((libcf::ucharptr_c)&i_pp, (libcf::ucharptr)&o_pi);
+        tdht.update(i_pp, i_pi);
+        found = tdht.search(i_pp, o_pi);
         assert(found == true);
         assert(o_pi == i_pi);
         std::cout << i << std::endl;
