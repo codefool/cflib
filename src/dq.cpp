@@ -74,8 +74,12 @@ std::mutex& QueueFile::mtx()
     return _mtx;
 }
 
-DiskQueue::DiskQueue(std::string path, std::string name, dq_rec_no_t reclen)
-: _path(path), _name(name)
+DiskQueue::DiskQueue(
+    std::string path, 
+    std::string name, 
+    dq_rec_no_t reclen,
+    dq_rec_no_t maxblocksize
+) : _path(path), _name(name)
 {
     // queue is in its own folder
     // path/name/name.idx and name.dat
@@ -92,7 +96,8 @@ DiskQueue::DiskQueue(std::string path, std::string name, dq_rec_no_t reclen)
     {
         _header._block_cnt      = 0;
         _header._rec_len        = reclen;
-        _header._recs_per_block = MAX_BLOCK_SIZE / reclen;
+        _header._max_block_size = maxblocksize;
+        _header._recs_per_block = maxblocksize / reclen;
         _header._rec_cnt        = 0;
         _header._block_size     = _header._recs_per_block * reclen;
         _header._alloc_cnt      = 0;

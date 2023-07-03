@@ -81,7 +81,7 @@ off_t DiskHashTable::BucketFile::search_nolock(ucharptr_c key, ucharptr val)
         {
             if ( !std::memcmp( p, key, _keylen ) )
             {
-                if ( _vallen != 0 && val != P_NAUGHT )
+                if ( _vallen != 0 && val != nullptr )
                     std::memcpy( val, p + _keylen, _vallen );
                 off_t off = pos.__pos + ( p - buff.get() );
                 return off;
@@ -110,10 +110,10 @@ bool DiskHashTable::BucketFile::append_nolock( ucharptr_c key, ucharptr_c val )
     std::fwrite( key, _keylen, 1, _fp );
     if ( _vallen != 0 )
     {
-        if ( val != P_NAUGHT )
+        if ( val != nullptr )
             std::fwrite( val, _vallen, 1, _fp );
         else
-            std::fwrite( P_NAUGHT, 1, _vallen, _fp );
+            std::fwrite( "", 1, _vallen, _fp );
     }
     _reccnt++;
     return true;
@@ -135,10 +135,10 @@ bool DiskHashTable::BucketFile::update_nolock(ucharptr_c key, ucharptr_c val)
         std::fwrite( key, _keylen, 1, _fp );
         if ( _vallen != 0 )
         {
-            if ( val != P_NAUGHT )
+            if ( val != nullptr )
                 std::fwrite( val, _vallen, 1, _fp );
             else
-                std::fwrite( P_NAUGHT, 1, _vallen, _fp );
+                std::fwrite( "", 1, _vallen, _fp );
         }
         return true;
     }
@@ -190,12 +190,10 @@ DiskHashTable::DiskHashTable()
 bool DiskHashTable::open(
     const std::string  path_name,
     const std::string  base_name,
-    int                level,
     size_t             key_len,
     size_t             val_len,
     dht_bucket_id_func bucket_func
-)
-{
+) {
     name     = base_name;
     keylen   = key_len;
     vallen   = val_len;
@@ -204,7 +202,7 @@ bool DiskHashTable::open(
     buckfunc = bucket_func;
 
     std::stringstream ss;
-    ss << path_name << level << '/' << name << '/';
+    ss << path_name << '/' << name << '/';
     path = ss.str();
     std::filesystem::create_directories( path );
 

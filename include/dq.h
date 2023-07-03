@@ -37,6 +37,9 @@ typedef unsigned char * dq_data_t;
 
 const dq_block_id_t BLOCK_NIL = -1;
 
+extern const dq_rec_no_t MAX_BLOCK_SIZE;   // 256 MiB
+extern const char * dq_naught;
+
 #pragma pack(1)
 
 struct IndexRec
@@ -61,6 +64,7 @@ struct QueueHeader
 {
     dq_rec_no_t   _block_size;
     dq_rec_no_t   _rec_len;
+    dq_rec_no_t   _max_block_size;
     dq_rec_no_t   _recs_per_block;
     dq_rec_no_t   _rec_cnt;
     dq_block_id_t _block_cnt;
@@ -105,7 +109,7 @@ private:
     BlockList   _free;
 
 public:
-    DiskQueue(std::string path, std::string name, dq_rec_no_t reclen);
+    DiskQueue(std::string path, std::string name, dq_rec_no_t reclen, dq_rec_no_t maxblocksize = MAX_BLOCK_SIZE);
     virtual ~DiskQueue();
     bool empty()
     {
@@ -118,6 +122,22 @@ public:
 private:
     void write_index();
     void read_index();
+};
+
+template<class T>
+class dq : public DiskQueue {
+public:
+    dq( std::string path, std::string name, dq_rec_no_t maxblocksize = MAX_BLOCK_SIZE )
+    : DiskQueue(path, name, sizeof(T), maxblocksize)
+    {}
+
+    void push(T& data) {
+        DiskQueue::push((dq_data_t)&data);
+    };
+
+    bool pop(T& data) {
+        return DiskQueue::pop((dq_data_t)&data);
+    }    
 };
 
 } // namespace libcf

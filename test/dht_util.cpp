@@ -215,8 +215,7 @@ void command_test(int argc, char **argv)
     //     std::cout << i << std::endl;
     // }
     // repeat the test using the template
-    libcf::dht<PositionPacked,PosInfo> tdht;
-    tdht.open("/tmp/", "ttemp", 888);
+    libcf::dht<PositionPacked,PosInfo> tdht("/tmp/", "ttemp");
     for (int i = 1; i < 100000; ++i)
     {
         i_pp.lo = i_pi.id = i;

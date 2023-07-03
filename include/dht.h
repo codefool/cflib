@@ -33,9 +33,7 @@ typedef std::shared_ptr<uchar[]> BuffPtr;
 
 typedef std::string (*dht_bucket_id_func)(ucharptr_c, size_t);
 
-typedef uchar NAUGHT_TYPE;
-static NAUGHT_TYPE  NAUGHT   = '\0';
-static NAUGHT_TYPE *P_NAUGHT = &NAUGHT;
+class NAUGHT_TYPE{};
 
 class DiskHashTable
 {
@@ -75,17 +73,17 @@ class DiskHashTable
         ~BucketFile();
         bool open();
         bool close();
-        off_t search(ucharptr_c key, ucharptr   val = P_NAUGHT);
-        bool  append(ucharptr_c key, ucharptr_c val = P_NAUGHT);
-        bool  update(ucharptr_c key, ucharptr_c val = P_NAUGHT);
+        off_t search(ucharptr_c key, ucharptr   val = nullptr);
+        bool  append(ucharptr_c key, ucharptr_c val = nullptr);
+        bool  update(ucharptr_c key, ucharptr_c val = nullptr);
         bool  read(size_t recno, ucharptr key, ucharptr val);
 
         size_t seek();
         BuffPtr get_file_buff();
 
-        off_t search_nolock(ucharptr_c key, ucharptr val = P_NAUGHT);
-        bool  append_nolock(ucharptr_c key, ucharptr_c val = P_NAUGHT);
-        bool  update_nolock(ucharptr_c key, ucharptr_c val = P_NAUGHT);
+        off_t search_nolock(ucharptr_c key, ucharptr val = nullptr);
+        bool  append_nolock(ucharptr_c key, ucharptr_c val = nullptr);
+        bool  update_nolock(ucharptr_c key, ucharptr_c val = nullptr);
     };
 
 public:
@@ -111,7 +109,6 @@ public:
     bool open(
         const std::string  path_name,
         const std::string  base_name,
-        int                level,
         size_t             key_len,
         size_t             val_len = 0,
         dht_bucket_id_func bucket_func = default_hasher);
@@ -136,26 +133,24 @@ protected:
     static std::string default_hasher(ucharptr_c key, size_t keylen);
 };
 
-
-template <class K, class V>
+template <class K, class V = NAUGHT_TYPE>
 class dht : public DiskHashTable
 {
 public:
     typedef std::pair<K,V> KeyVal;
 
-    bool open(
+    dht(
         const std::string  path_name,
         const std::string  base_name,
-        int                level,
-        dht_bucket_id_func bucket_func = default_hasher)
-    {
+        dht_bucket_id_func bucket_func = default_hasher
+    ) {
         size_t vsize = (typeid(V) == typeid(NAUGHT_TYPE)) ? 0 : sizeof(V);
-        return DiskHashTable::open(path_name, base_name, level, sizeof(K), vsize, bucket_func);
+        DiskHashTable::open(path_name, base_name, sizeof(K), vsize, bucket_func);
     }
 
     bool search(K& key)
     {
-        return search(key, NAUGHT);
+        return DiskHashTable::search((ucharptr_c)&key, nullptr);
     }
     bool search(K& key, V& val)
     {
@@ -163,7 +158,7 @@ public:
     }
     bool insert(K& key)
     {
-        return insert(key, NAUGHT);
+        return DiskHashTable::insert((ucharptr_c)&key, nullptr);
     }
     bool insert(K& key, V& val)
     {
@@ -171,7 +166,7 @@ public:
     }
     bool append(K& key)
     {
-        return append(key, NAUGHT);
+        return DiskHashTable::append((ucharptr_c)&key, nullptr);
     }
     bool append(K& key, V& val)
     {
@@ -179,7 +174,7 @@ public:
     }
     bool update(K& key)
     {
-        return update(key, NAUGHT);
+        return DiskHashTable::update((ucharptr_c)&key, nullptr);
     }
     bool update(K& key, V& val)
     {
