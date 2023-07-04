@@ -11,12 +11,17 @@ std::map<size_t, BuffPtr> DiskHashTable::BucketFile::buff_map;
 // so postulating that I'm opening file too fast.
 std::mutex fopen_mtx;
 
-DiskHashTable::BucketFile::BucketFile(std::string fspec, size_t key_len, size_t val_len)
+DiskHashTable::BucketFile::BucketFile(
+    std::string fspec, 
+    size_t key_len, 
+    size_t val_len,
+    dht_comparitor comp_func)
 : _fspec(fspec)
 , _keylen(key_len)
 , _vallen(val_len)
 , _reclen(key_len + val_len)
 , _reccnt(0)
+, _compfunc(comp_func)
 , _fp(nullptr)
 {
     std::lock_guard<std::mutex> lock(fopen_mtx);
@@ -74,13 +79,10 @@ off_t DiskHashTable::BucketFile::search_nolock(ucharptr_c key, ucharptr val)
     fpos_t pos;  // file position at start of block
     std::fgetpos(_fp, &pos);
     size_t rec_cnt = std::fread(buff.get(), _reclen, max_item_cnt, _fp);
-    while ( rec_cnt > 0 )
-    {
+    while ( rec_cnt > 0 ) {
         unsigned char *p = buff.get();
-        for ( int i(0); i < rec_cnt; ++i )
-        {
-            if ( !std::memcmp( p, key, _keylen ) )
-            {
+        for ( int i(0); i < rec_cnt; ++i ) {
+            if ( !_compfunc( p, key, _keylen ) ) {
                 if ( _vallen != 0 && val != nullptr )
                     std::memcpy( val, p + _keylen, _vallen );
                 off_t off = pos.__pos + ( p - buff.get() );
@@ -192,14 +194,16 @@ bool DiskHashTable::open(
     const std::string  base_name,
     size_t             key_len,
     size_t             val_len,
-    dht_bucket_id_func bucket_func
+    dht_comparitor     comp_func,
+    dht_hasher         hash_func
 ) {
     name     = base_name;
     keylen   = key_len;
     vallen   = val_len;
     reclen   = key_len + val_len;
     reccnt   = 0;
-    buckfunc = bucket_func;
+    compfunc = comp_func;
+    hashfunc = hash_func;
 
     std::stringstream ss;
     ss << path_name << '/' << name << '/';
@@ -223,7 +227,7 @@ DiskHashTable::~DiskHashTable()
 
 std::string DiskHashTable::calc_bucket_id( ucharptr_c key )
 {
-    return buckfunc( key, keylen );
+    return hashfunc( key, keylen );
 }
 
 bool DiskHashTable::search( ucharptr_c key, ucharptr val )
@@ -279,7 +283,7 @@ DiskHashTable::BucketFilePtr DiskHashTable::get_bucket( const std::string& bucke
     BucketFilePtr bf = nullptr;
     if ( exists || !must_exist )
     {
-        bf = std::make_shared<BucketFile>( fspec, keylen, vallen );
+        bf = std::make_shared<BucketFile>( fspec, keylen, vallen, compfunc );
         if ( bf != nullptr )
             fp_map.insert( {bucket, bf} );
     }
@@ -298,6 +302,10 @@ std::string DiskHashTable::get_bucket_fspec( const std::string path, const std::
     if ( exists != nullptr )
         *exists = std::filesystem::exists( ss.str() );
     return ss.str();
+}
+
+bool DiskHashTable::default_comparitor( ucharptr_c lhs, ucharptr_c rhs, size_t keylen ) {
+    return std::memcmp(lhs, rhs, keylen);
 }
 
 std::string DiskHashTable::default_hasher( ucharptr_c key, size_t keylen )

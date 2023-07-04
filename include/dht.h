@@ -31,27 +31,23 @@ typedef uchar         * ucharptr;
 typedef const ucharptr  ucharptr_c;
 typedef std::shared_ptr<uchar[]> BuffPtr;
 
-typedef std::string (*dht_bucket_id_func)(ucharptr_c, size_t);
+typedef bool (*dht_comparitor)(ucharptr_c, ucharptr_c, size_t);
+typedef std::string (*dht_hasher)(ucharptr_c, size_t);
 
 class NAUGHT_TYPE{};
 
-class DiskHashTable
-{
-    struct BucketFile
-    {
-        struct file_guard
-        {
+class DiskHashTable {
+    struct BucketFile {
+        struct file_guard {
             BucketFile& _bf;
             bool        _was_open;
-            file_guard(BucketFile& bf) : _bf(bf)
-            {
+            file_guard(BucketFile& bf) : _bf(bf) {
                 _was_open = _bf._fp != nullptr;
                 if ( !_was_open )
                     _bf.open();
             }
 
-            ~file_guard()
-            {
+            ~file_guard() {
                 if ( !_was_open )
                     _bf.close();
             }
@@ -59,17 +55,20 @@ class DiskHashTable
 
         static std::map<size_t, BuffPtr> buff_map;
 
-        std::mutex  _mtx;
-        std::FILE*  _fp;
-        std::string _fspec;
-        size_t      _keylen;
-        size_t      _vallen;
-        size_t      _reccnt;
-        size_t      _reclen;
+        std::mutex     _mtx;
+        std::FILE*     _fp;
+        std::string    _fspec;
+        size_t         _keylen;
+        size_t         _vallen;
+        size_t         _reccnt;
+        size_t         _reclen;
+        dht_comparitor _compfunc;
+
 
         BucketFile( std::string fspec,
                     size_t key_len,
-                    size_t val_len = 0);
+                    size_t val_len = 0,
+                    dht_comparitor comp_func = default_comparitor);
         ~BucketFile();
         bool open();
         bool close();
@@ -99,7 +98,8 @@ protected:
     std::string        path;
     std::string        name;
     size_t             reccnt;
-    dht_bucket_id_func buckfunc;
+    dht_comparitor     compfunc;
+    dht_hasher         hashfunc;
 
 public:
     DiskHashTable();
@@ -111,7 +111,8 @@ public:
         const std::string  base_name,
         size_t             key_len,
         size_t             val_len = 0,
-        dht_bucket_id_func bucket_func = default_hasher);
+        dht_comparitor     comp_func = default_comparitor,
+        dht_hasher         hash_func = default_hasher);
 
     size_t size() const {return reccnt;}
     bool search(ucharptr_c key, ucharptr val = nullptr);
@@ -130,6 +131,7 @@ private:
     BucketFilePtr get_bucket( const std::string& bucket, bool must_exist = false );
     std::string get_bucket_fspec( const std::string& bucket, bool* exists = nullptr );
 protected:
+    static bool default_comparitor( ucharptr_c lhs, ucharptr_c rhs, size_t keylen );
     static std::string default_hasher(ucharptr_c key, size_t keylen);
 };
 
@@ -142,10 +144,11 @@ public:
     dht(
         const std::string  path_name,
         const std::string  base_name,
-        dht_bucket_id_func bucket_func = default_hasher
+        dht_comparitor     comp_func = default_comparitor,
+        dht_hasher         hash_func = default_hasher
     ) {
         size_t vsize = (typeid(V) == typeid(NAUGHT_TYPE)) ? 0 : sizeof(V);
-        DiskHashTable::open(path_name, base_name, sizeof(K), vsize, bucket_func);
+        DiskHashTable::open(path_name, base_name, sizeof(K), vsize, comp_func, hash_func);
     }
 
     bool search(K& key)
