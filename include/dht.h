@@ -31,6 +31,7 @@ typedef uchar         * ucharptr;
 typedef const ucharptr  ucharptr_c;
 typedef std::shared_ptr<uchar[]> BuffPtr;
 
+// dht_comparitor returns true if lhs == rhs
 typedef bool (*dht_comparitor)(ucharptr_c, ucharptr_c, size_t);
 typedef std::string (*dht_hasher)(ucharptr_c, size_t);
 

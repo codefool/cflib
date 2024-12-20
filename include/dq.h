@@ -54,7 +54,7 @@ struct QueueRecPos
     dq_block_id_t _block_id;
     dq_rec_no_t   _rec_no;
 
-    bool operator==(const QueueRecPos& o)
+    bool operator==(const QueueRecPos& o) const
     {
         return _block_id == o._block_id && _rec_no == o._rec_no;
     }

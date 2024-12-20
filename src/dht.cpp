@@ -82,7 +82,7 @@ off_t DiskHashTable::BucketFile::search_nolock(ucharptr_c key, ucharptr val)
     while ( rec_cnt > 0 ) {
         unsigned char *p = buff.get();
         for ( int i(0); i < rec_cnt; ++i ) {
-            if ( !_compfunc( p, key, _keylen ) ) {
+            if ( _compfunc( p, key, _keylen ) ) {
                 if ( _vallen != 0 && val != nullptr )
                     std::memcpy( val, p + _keylen, _vallen );
                 off_t off = pos.__pos + ( p - buff.get() );
@@ -305,7 +305,7 @@ std::string DiskHashTable::get_bucket_fspec( const std::string path, const std::
 }
 
 bool DiskHashTable::default_comparitor( ucharptr_c lhs, ucharptr_c rhs, size_t keylen ) {
-    return std::memcmp(lhs, rhs, keylen);
+    return std::memcmp(lhs, rhs, keylen) == 0;
 }
 
 std::string DiskHashTable::default_hasher( ucharptr_c key, size_t keylen )
