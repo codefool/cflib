@@ -244,6 +244,10 @@ void MD5::transform(const uint1 block[blocksize])
 
 //////////////////////////////
 
+void MD5::update(const void *buffer, size_type length) {
+    return update((const unsigned char *)buffer, length);
+}
+
 // MD5 block update operation. Continues an MD5 message-digest
 // operation, processing another message block
 void MD5::update(const unsigned char input[], size_type length)

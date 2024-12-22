@@ -227,7 +227,7 @@ DiskHashTable::~DiskHashTable()
 
 std::string DiskHashTable::calc_bucket_id( ucharptr_c key )
 {
-    return hashfunc( key, keylen );
+    return hashfunc( key, keylen, BUCKET_ID_WIDTH );
 }
 
 bool DiskHashTable::search( ucharptr_c key, ucharptr val )
@@ -304,16 +304,16 @@ std::string DiskHashTable::get_bucket_fspec( const std::string path, const std::
     return ss.str();
 }
 
-bool DiskHashTable::default_comparitor( ucharptr_c lhs, ucharptr_c rhs, size_t keylen ) {
+bool DiskHashTable::default_comparitor( const void * lhs, const void * rhs, size_t keylen ) {
     return std::memcmp(lhs, rhs, keylen) == 0;
 }
 
-std::string DiskHashTable::default_hasher( ucharptr_c key, size_t keylen )
+std::string DiskHashTable::default_hasher( const void * key, size_t keylen, size_t hashlen )
 {
     MD5 md5;
     md5.update( key, keylen );
     md5.finalize();
-    return md5.hexdigest().substr( 0, BUCKET_ID_WIDTH );
+    return md5.hexdigest().substr( 0, hashlen );
 }
 
 } // namespace libcf

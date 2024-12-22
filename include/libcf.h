@@ -5,3 +5,4 @@
 #include "dq.h"
 #include "dht.h"
 #include "dstack.h"
+#include "buildinfo.h"

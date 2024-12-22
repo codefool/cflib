@@ -32,8 +32,9 @@ typedef const ucharptr  ucharptr_c;
 typedef std::shared_ptr<uchar[]> BuffPtr;
 
 // dht_comparitor returns true if lhs == rhs
-typedef bool (*dht_comparitor)(ucharptr_c, ucharptr_c, size_t);
-typedef std::string (*dht_hasher)(ucharptr_c, size_t);
+typedef bool (*dht_comparitor)(const void *lhs, const void *rhs, size_t keysize);
+// dht_hasher computes a hash of key, and returns the first n chars
+typedef std::string (*dht_hasher)(const void *key, size_t keysize, size_t n);
 
 class NAUGHT_TYPE{};
 
@@ -132,8 +133,8 @@ private:
     BucketFilePtr get_bucket( const std::string& bucket, bool must_exist = false );
     std::string get_bucket_fspec( const std::string& bucket, bool* exists = nullptr );
 protected:
-    static bool default_comparitor( ucharptr_c lhs, ucharptr_c rhs, size_t keylen );
-    static std::string default_hasher(ucharptr_c key, size_t keylen);
+    static bool default_comparitor( const void * lhs, const void * rhs, size_t keylen );
+    static std::string default_hasher(const void * key, size_t keylen, size_t hashlen );
 };
 
 template <class K, class V = NAUGHT_TYPE>
