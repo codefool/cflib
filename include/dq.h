@@ -111,14 +111,10 @@ private:
 public:
     DiskQueue(std::string path, std::string name, dq_rec_no_t reclen, dq_rec_no_t maxblocksize = MAX_BLOCK_SIZE);
     virtual ~DiskQueue();
-    bool empty()
-    {
-        // if the push position is the pop position, the queue is empty.
-        return _header._push == _header._pop;
-    };
+    bool empty();
     void push(const dq_data_t data);
     bool pop(dq_data_t data);
-    dq_rec_no_t size() { return _header._rec_cnt; }
+    dq_rec_no_t size();
 private:
     void write_index();
     void read_index();

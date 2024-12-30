@@ -202,6 +202,16 @@ bool DiskQueue::pop(dq_data_t data)
     return true;
 }
 
+bool DiskQueue::empty() {
+    std::lock_guard<std::mutex> lock(_idx.mtx());
+    return _header._push == _header._pop;
+}
+
+dq_rec_no_t DiskQueue::size() { 
+    std::lock_guard<std::mutex> lock(_idx.mtx());
+    return _header._rec_cnt; 
+}
+
 void DiskQueue::write_index()
 {
     std::lock_guard<std::mutex> lock(_idx.mtx());

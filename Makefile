@@ -41,6 +41,9 @@ clean:
 test:
 	$(CC) $(CFLAGS) ./test/dstack_test.cpp -I. -L/usr/lib/x86_64-linux-gnu libcf -o dstack_test
 
+bang: ./test/bang.cpp libcf
+	$(CC) $(CFLAGS) -pthread ./test/bang.cpp -I. -L/usr/lib/x86_64-linux-gnu libcf -o bang
+
 dq_util:
 	$(CC) $(CFLAGS) ./test/dq_util.cpp -I. -L/usr/lib/x86_64-linux-gnu libcf -o dq_util
 
