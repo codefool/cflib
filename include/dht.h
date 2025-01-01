@@ -143,6 +143,72 @@ class dht : public DiskHashTable
 public:
     typedef std::pair<K,V> KeyVal;
 
+    class iterator {
+        friend dht;
+    public:
+        using iterator_category = std::bidirectional_iterator_tag;
+        using value_type        = KeyVal;
+        using difference_type   = KeyVal;
+        using pointer           = KeyVal*;
+        using reference         = KeyVal&;
+    private:
+        BucketFilePtrMap&    _map;
+        BucketFilePtrMapCItr _buck;
+        long                 _recno;
+    public:
+        explicit iterator(BucketFilePtrMap& map, BucketFilePtrMapCItr pos)
+        :_map{map}       
+        ,_buck{pos}
+        ,_recno{0}
+        {};
+        iterator& operator++() {
+            if ( _buck != _map.cend() ) {
+                auto& buck = _buck->second;
+                if (_recno < buck->_reccnt) {
+                    ++_recno;
+                } else {
+                    ++_buck;
+                    _recno = 0;
+                }
+            }
+            return *this;
+        }
+        iterator operator++(int) {
+            iterator itr = *this;
+            ++(*this);
+            return itr;
+        };
+        iterator& operator--() {
+            if ( _buck != _map.cbegin() ) {
+                auto& buck = _buck->second;
+                if ( _recno == 0 ) {
+                    --_buck;
+                    _recno = buck->_reccnt;
+                } else {
+                    --_recno;
+                }
+            }
+            return *this;
+        }
+        iterator operator--(int) {
+            iterator itr = *this;
+            --(*this);
+            return *this;
+        }
+        bool operator==(const iterator& other) const {
+            return _buck == other._buck && _recno == other._recno;
+        }
+        bool operator!=(const iterator& other) const { return !(*this == other); }
+        KeyVal operator*() const {
+            KeyVal ret;
+            _buck->second->read(_recno, (ucharptr)&ret.first, (ucharptr)&ret.second);
+            return ret;
+        };
+    };
+
+    iterator begin() { return iterator{ fp_map, fp_map.cbegin() }; };
+    iterator end()   { return iterator{ fp_map, fp_map.cend()   }; };
+
     dht(
         const std::string  path_name,
         const std::string  base_name,
